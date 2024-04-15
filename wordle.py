@@ -1,8 +1,10 @@
 from letter_state import LetterState
 from colorama import Fore, Style
 from typing import List
+from data.convert_words import convert_words
+import random
 
-
+#TODO: MVC pattern
 class Wordle():
     """Wordle game class."""
     MAX_GUESSES = 6
@@ -36,6 +38,14 @@ class Wordle():
             Returns:
                 (int) Returns the number of remaining guesses."""
         return self.MAX_GUESSES - len(self.guesses)
+    
+    @property
+    def secret(self) -> str:
+        """Returns the secret word.
+        
+            Returns:
+                Returns the secret word."""
+        return self._secret
 
     def guess(self, guess: str) -> bool:
         """Guess the word. Return True if the guess is correct, False otherwise.
@@ -65,7 +75,7 @@ class Wordle():
                 guess (str): The word to be guessed.
 
             Returns:
-                Returns a list of LetterState objects."""
+                (list[LetterState]): Returns a list of LetterState objects."""
         guess = guess.upper()
         return [
             LetterState(
@@ -75,18 +85,15 @@ class Wordle():
             for i, letter in enumerate(
                 self._secret)]
 
-    def display(self) -> str:
-        """Display the secret word."""
-        return self._secret
-
     def is_over(self) -> bool:
         """Check if the game is over."""
         return self.remaining_guesses <= 0
 
 
 def main():
+    word_set = load_word_set('data/filtered_words.txt')
     print('Hello Wordle!')
-    wordle = Wordle('Slate')
+    wordle = Wordle(random.choice(list(word_set)))
 
     while wordle.can_guess:
         word: str = input("Type your guess: ").upper()
@@ -94,13 +101,17 @@ def main():
         if not wordle.validate_guess(word):
             print(Fore.RED + 'Invalid guess. Please try again.' + Fore.RESET)
             continue
+        
+        if word not in word_set:
+            print(Fore.RED + 'Word is not valid. Please try again.' + Fore.RESET)
+            continue
 
         wordle.guess(word)
         display_results(wordle)
 
         if wordle.is_solved:
             print('You won!')
-            print(f'The word was: {wordle.display()}')
+            print(f'The word was: {wordle.secret}')
             break
         else:
             print(f'You have {wordle.remaining_guesses} guesses left.')
@@ -109,7 +120,7 @@ def main():
 
         if wordle.is_over():
             print('You lose!')
-            print(f'The word was: {wordle.display()}')
+            print(f'The word was: {wordle.secret}')
             break
 
 
@@ -152,6 +163,16 @@ def draw_border(lines: List[str], size: int = 9, pad: int = 1) -> None:
     for line in lines:
         print(f'|{" " * pad}{line}{" " * pad}|')
     print(border)
+
+def load_word_set(path: str) -> set[str]:
+    """Load the word set from the file.
+        Returns:
+            Returns a set of words."""
+    word_set = set()
+    with open(path, 'r') as file:
+        for line in file.readlines():
+            word_set.add(line.strip().upper())
+        return word_set
 
 if __name__ == '__main__':
     main()
